@@ -1,0 +1,107 @@
+#!/usr/bin/env perl
+# Reddit Image Snarfer
+# Copyright 2011 (c) Matt Dees
+# Distributed under the 2-clause BSD.
+
+
+use Data::Dumper;
+use HTTP::Tiny ();
+use JSON::XS   ();
+use GD         ();
+my @subreddits      = qw/ SpacePorn /;
+my $save_dir        = '/Users/matt/Pictures/RedditTest';
+my $number_of_pages = 1;
+
+if ( !-d $save_dir ) {
+    die "specified save_dir $save_dir is not a valid directory, please edit this script to resolve this problem.";
+}
+
+foreach my $subreddit (@subreddits) {
+    load_subreddit($subreddit);
+}
+
+sub load_subreddit {
+    my ($subreddit) = @_;
+    print "\nProcessing /r/$subreddit\n---\n";
+    my $res = HTTP::Tiny->new->get("http://www.reddit.com/r/$subreddit/top.json?sort=top&t=all");
+    if ( $res->{'status'} != 200 ) {
+        return 'non-200 response recieved';
+    }
+    my $parsed_response = JSON::XS::decode_json( $res->{'content'} );
+    my $after           = $parsed_response->{'data'}->{'after'};
+    my @links;
+    if ( ref $parsed_response->{'data'}->{'children'} eq 'ARRAY' ) {
+        @links = @{ $parsed_response->{'data'}->{'children'} };
+        my $counter = 1;
+        while ( $counter < $number_of_pages ) {
+            sleep 2;
+            print "grabbing page " . $counter + 1 . ": ";
+            my $page_url = "http://www.reddit.com/r/$subreddit/top.json?sort=top&t=all&after=$after&count=" . $counter * 25;
+            print $page_url . "\n";
+            $res             = HTTP::Tiny->new->get($page_url);
+            $parsed_response = JSON::XS::decode_json( $res->{'content'} );
+            $after           = $parsed_response->{'data'}->{'after'};
+            push @links, @{ $parsed_response->{'data'}->{'children'} };
+            last if !$after;
+            $counter++;
+        }
+    }
+    else {
+        return 'Reddit API gave invalid response';
+    }
+
+    foreach my $link (@links) {
+        my $url  = $link->{'data'}->{'url'};
+        my $name = $link->{'data'}->{'title'};
+        if ( $url !~ /imgur.com/ && $url !~ /(png|jpg|jpeg)$/ ) {
+            next;
+        }
+        download_image( $url, $name );
+    }
+}
+
+sub download_image {
+    my ( $img_url, $name ) = @_;
+    print "Downloading $img_url...\n";
+    my $img_ref = HTTP::Tiny->new->get($img_url);
+
+    # try grabbing url .png and .jpg incase the first download returns a page
+    if ( $img_url =~ /imgur.com/ && $img_ref->{'headers'}->{'content-type'} =~ /text\/html/ ) {
+        ( $img_ref, $img_url ) = try_extensions_on_imgur($img_url);
+        if ( !$img_ref ) {
+            print "Failure: image could not be downloaded";
+        }
+    }
+    if ( $img_ref->{'status'} != 200 ) {
+        print "Failure: image returned http status code " . $img_ref->{'status'} . "\n";
+        return;
+    }
+    process_img( $img_ref->{'content'}, $img_url, $name );
+
+    #	print Dumper $img_ref;
+}
+
+sub process_img {
+    my ( $img_file_contents, $img_url ) = @_;
+    my $name = $img_url;
+    $name =~ s/^(.+\/){1,}(.+)$/$2/;
+#    my ($extension) = $img_url =~ /\.([a-zA-Z]{3,4})$/;
+    my $image_filename = "$save_dir/$name";
+    $image_filename =~ s//\.([a-zA-Z]{3,4})$/.png/;
+    print "Saving to $image_filename\n";
+
+    my $gd_obj = GD->new($img_file_contents);
+    open( my $img_file_fh, '>', $image_filename ) || print "FAILED Opening File for Writing: $!\n";
+    print $img_file_fh $gd_obg->png;
+    close $img_file_fh || die $!;
+}
+
+sub try_extensions_on_imgur {
+    my ($img_url) = @_;
+    foreach my $extension (qw / png jpeg jpg /) {
+        my $tmp_url = "$img_url.$extension";
+        my $img_ref = HTTP::Tiny->new->get($tmp_url);
+        return $img_ref, $tmp_url if $img_ref->{'status'} == 200;
+    }
+    return 0;
+}
