@@ -8,9 +8,9 @@ use Data::Dumper;
 use HTTP::Tiny ();
 use JSON::XS   ();
 use Image::Info ();
-my @subreddits      = qw/ SpacePorn /;
-my $save_dir        = '/Users/matt/Pictures/RedditTest';
-my $number_of_pages = 1;
+my @subreddits      = qw/ gonewild /;
+my $save_dir        = '/Users/matt/Pictures/GoneWild';
+my $number_of_pages = 10;
 
 if ( !-d $save_dir ) {
     die "specified save_dir $save_dir is not a valid directory, please edit this script to resolve this problem.";
@@ -35,7 +35,8 @@ sub load_subreddit {
         my $counter = 1;
         while ( $counter < $number_of_pages ) {
             sleep 2;
-            print "grabbing page " . $counter + 1 . ": ";
+            $counter++;
+            print "grabbing page " . $counter . ": ";
             my $page_url = "http://www.reddit.com/r/$subreddit/top.json?sort=top&t=all&after=$after&count=" . $counter * 25;
             print $page_url . "\n";
             $res             = HTTP::Tiny->new->get($page_url);
@@ -43,7 +44,6 @@ sub load_subreddit {
             $after           = $parsed_response->{'data'}->{'after'};
             push @links, @{ $parsed_response->{'data'}->{'children'} };
             last if !$after;
-            $counter++;
         }
     }
     else {
@@ -70,6 +70,7 @@ sub download_image {
         ( $img_ref, $img_url ) = try_extensions_on_imgur($img_url);
         if ( !$img_ref ) {
             print "Failure: image could not be downloaded.";
+            return;
         }
     }
     if ( $img_ref->{'status'} != 200 ) {
@@ -105,7 +106,7 @@ sub process_img {
     }
     print "Saving to $image_filename\n";
     open( my $img_file_fh, '>', $image_filename ) || print "FAILED Opening File for Writing: $!\n";
-    print $img_file_fh $image_file_contents;
+    print $img_file_fh $img_file_contents;
     close $img_file_fh || die $!;
 }
 

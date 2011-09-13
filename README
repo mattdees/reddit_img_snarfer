@@ -9,7 +9,7 @@ $number_of_pages - how many pages you want to download, current this will mean t
 This package relies on the GD, JSON::XS and HTTP::Tiny perl modules, to install either consult your distro or use the cpan shell:
 
 $ cpan
-> install GD JSON::XS HTTP::Tiny
+> install Image::Info JSON::XS HTTP::Tiny
 
 
 
