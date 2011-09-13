@@ -7,7 +7,7 @@
 use Data::Dumper;
 use HTTP::Tiny ();
 use JSON::XS   ();
-use GD         ();
+use Image::Info ();
 my @subreddits      = qw/ SpacePorn /;
 my $save_dir        = '/Users/matt/Pictures/RedditTest';
 my $number_of_pages = 1;
@@ -69,7 +69,7 @@ sub download_image {
     if ( $img_url =~ /imgur.com/ && $img_ref->{'headers'}->{'content-type'} =~ /text\/html/ ) {
         ( $img_ref, $img_url ) = try_extensions_on_imgur($img_url);
         if ( !$img_ref ) {
-            print "Failure: image could not be downloaded";
+            print "Failure: image could not be downloaded.";
         }
     }
     if ( $img_ref->{'status'} != 200 ) {
@@ -87,12 +87,25 @@ sub process_img {
     $name =~ s/^(.+\/){1,}(.+)$/$2/;
 #    my ($extension) = $img_url =~ /\.([a-zA-Z]{3,4})$/;
     my $image_filename = "$save_dir/$name";
-    $image_filename =~ s//\.([a-zA-Z]{3,4})$/.png/;
+    $image_filename =~ s/\.([a-zA-Z]{3,4})//;
+    my $img_type = Image::Info::image_type(\$img_file_contents)->{'file_type'};
+    print "Determined file type to be $img_type.\n";
+    if ( $img_type eq 'JPEG' ) {
+        $image_filename .= '.jpg';
+    }
+    elsif ( $img_type eq 'PNG' ) {
+        $image_filename .= '.png';
+    }
+    elsif ( $img_type eq 'GIF') {
+        $image_filename .= '.gif';
+    }
+    else {
+        print "File is not a valid image skipping.\n";
+        return;
+    }
     print "Saving to $image_filename\n";
-
-    my $gd_obj = GD->new($img_file_contents);
     open( my $img_file_fh, '>', $image_filename ) || print "FAILED Opening File for Writing: $!\n";
-    print $img_file_fh $gd_obg->png;
+    print $img_file_fh $image_file_contents;
     close $img_file_fh || die $!;
 }
 
