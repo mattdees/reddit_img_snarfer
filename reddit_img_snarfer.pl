@@ -8,8 +8,8 @@ use Data::Dumper;
 use HTTP::Tiny ();
 use JSON::XS   ();
 use Image::Info ();
-my @subreddits      = qw/ gonewild /;
-my $save_dir        = '/Users/matt/Pictures/GoneWild';
+my @subreddits      = qw/ EarthPorn VillagePorn /;
+my $save_dir        = '/Users/matt/Pictures/RedditTest';
 my $number_of_pages = 10;
 
 if ( !-d $save_dir ) {
@@ -69,7 +69,7 @@ sub download_image {
     if ( $img_url =~ /imgur.com/ && $img_ref->{'headers'}->{'content-type'} =~ /text\/html/ ) {
         ( $img_ref, $img_url ) = try_extensions_on_imgur($img_url);
         if ( !$img_ref ) {
-            print "Failure: image could not be downloaded.";
+            print "Failure: image could not be downloaded.\n";
             return;
         }
     }
