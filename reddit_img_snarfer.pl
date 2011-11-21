@@ -8,17 +8,15 @@ use Data::Dumper;
 use HTTP::Tiny ();
 use JSON::XS   ();
 use Image::Info ();
+use File::Path qw(make_path);
+
 my @subreddits      = qw/ EarthPorn VillagePorn /;
-my $save_dir        = '/Users/matt/Pictures/RedditTest';
+my $save_dir        = "$ENV{HOME}/Pictures/RedditTest";
 my $number_of_pages = 10;
 
-if ( !-d $save_dir ) {
-    die "specified save_dir $save_dir is not a valid directory, please edit this script to resolve this problem.";
-}
+make_path($save_dir); #like mkdir -p
 
-foreach my $subreddit (@subreddits) {
-    load_subreddit($subreddit);
-}
+map { load_subreddit($_) } @subreddits;
 
 sub load_subreddit {
     my ($subreddit) = @_;
@@ -53,10 +51,8 @@ sub load_subreddit {
     foreach my $link (@links) {
         my $url  = $link->{'data'}->{'url'};
         my $name = $link->{'data'}->{'title'};
-        if ( $url !~ /imgur.com/ && $url !~ /(png|jpg|jpeg)$/ ) {
-            next;
-        }
-        download_image( $url, $name );
+        download_image( $url, $name )
+          unless ( $url !~ m@imgur\.com@i && $url !~ m@(png|jpg|jpeg)$@i );
     }
 }
 
