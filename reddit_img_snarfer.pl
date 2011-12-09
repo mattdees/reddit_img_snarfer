@@ -13,15 +13,13 @@ use File::Path qw(make_path);
 my $http = HTTP::Tiny->new;
 
 my @subreddits      = qw/ EarthPorn VillagePorn /;
-my $save_dir        = "$ENV{HOME}/Pictures/RedditTest";
+my $root_dir        = "$ENV{HOME}/Pictures/Snarfer";
 my $number_of_pages = 1;
-
-make_path($save_dir); #like mkdir -p
 
 map { load_subreddit($_) } @subreddits;
 
 sub load_subreddit {
-    my ($subreddit) = @_;
+    my $subreddit = shift;
     print "\nProcessing /r/$subreddit\n---\n";
     my $res = $http->get("http://www.reddit.com/r/$subreddit/top.json?sort=top&t=all");
     if ( $res->{'status'} != 200 ) {
@@ -52,16 +50,18 @@ sub load_subreddit {
 
     foreach my $link (@links) {
         my $url  = $link->{'data'}->{'url'};
-        download_image( $url )
+        download_image( $url, $subreddit )
           unless ( $url !~ m@imgur\.com\/[a-z]+\.(png|jpg|gif)$@i );
     }
 }
 
 sub download_image {
-    my $url = shift;
+    my ( $url, $sub ) = @_;
     print "Downloading $url...";
     my ($name) = ($url =~ m@imgur\.com/([a-z]+\.[a-z]{3})@i);
-    my $dl = $http->mirror( $url, "$save_dir/$name" );
+    my $path = "$root_dir/$sub";
+    make_path $path;
+    my $dl = $http->mirror( $url, "$path/$name" );
     print $dl->{success} ? "OK\n" : "FAILED\n";
 
 }
