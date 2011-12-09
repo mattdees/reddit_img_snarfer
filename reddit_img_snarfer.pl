@@ -7,7 +7,6 @@
 use Data::Dumper;
 use HTTP::Tiny ();
 use JSON::XS   ();
-use Image::Info ();
 use File::Path qw(make_path);
 
 my @subreddits      = qw/ EarthPorn VillagePorn /;
@@ -50,14 +49,13 @@ sub load_subreddit {
 
     foreach my $link (@links) {
         my $url  = $link->{'data'}->{'url'};
-        my $name = $link->{'data'}->{'title'};
-        download_image( $url, $name )
+        download_image( $url )
           unless ( $url !~ m@imgur\.com\/[a-z]+\.(png|jpg|gif)$@i );
     }
 }
 
 sub download_image {
-    my ( $img_url, $name ) = @_;
+    my ( $img_url ) = @_;
     print "Downloading $img_url...\n";
     my $img_ref = HTTP::Tiny->new->get($img_url);
 
@@ -73,30 +71,17 @@ sub download_image {
         print "Failure: image returned http status code " . $img_ref->{'status'} . "\n";
         return;
     }
-    process_img( $img_ref->{'content'}, $img_url, $name );
+    process_img( $img_ref->{'content'}, $img_url );
 
     #	print Dumper $img_ref;
 }
 
 sub process_img {
     my ( $img_file_contents, $img_url ) = @_;
-    my $name = $img_url;
-    $name =~ s/^(.+\/){1,}(.+)$/$2/;
+    my ($name) = ($img_url =~ m@imgur\.com/([a-z]+\.[a-z]{3})@i);
 #    my ($extension) = $img_url =~ /\.([a-zA-Z]{3,4})$/;
     my $image_filename = "$save_dir/$name";
-    $image_filename =~ s/\.([a-zA-Z]{3,4})//;
-    my $img_type = Image::Info::image_type(\$img_file_contents)->{'file_type'};
-    print "Determined file type to be $img_type.\n";
-    if ( $img_type eq 'JPEG' ) {
-        $image_filename .= '.jpg';
-    }
-    elsif ( $img_type eq 'PNG' ) {
-        $image_filename .= '.png';
-    }
-    elsif ( $img_type eq 'GIF') {
-        $image_filename .= '.gif';
-    }
-    else {
+    unless ($name) {
         print "File is not a valid image skipping.\n";
         return;
     }
