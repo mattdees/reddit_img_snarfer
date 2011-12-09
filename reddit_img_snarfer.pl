@@ -52,7 +52,7 @@ sub load_subreddit {
         my $url  = $link->{'data'}->{'url'};
         my $name = $link->{'data'}->{'title'};
         download_image( $url, $name )
-          unless ( $url !~ m@imgur\.com@i && $url !~ m@(png|jpg|jpeg)$@i );
+          unless ( $url !~ m@imgur\.com\/[a-z]+\.(png|jpg|gif)$@i );
     }
 }
 
