@@ -5,7 +5,7 @@
 use strict;
 use warnings;
 
-use Data::Dumper;
+#use Data::Dumper;
 use HTTP::Tiny ();
 use JSON::XS   ();
 use File::Path qw(make_path);
@@ -14,7 +14,7 @@ my $http = HTTP::Tiny->new;
 
 my @subreddits      = qw/ EarthPorn VillagePorn /;
 my $root_dir        = "$ENV{HOME}/Pictures/Snarfer";
-my $number_of_pages = 1;
+my $number_of_pages = 10;
 
 map { load_subreddit($_) } @subreddits;
 
