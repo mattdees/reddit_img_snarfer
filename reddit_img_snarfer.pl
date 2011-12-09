@@ -2,6 +2,8 @@
 # Reddit Image Snarfer
 # Copyright 2011 (c) Matt Dees
 # Distributed under the 2-clause BSD.
+use strict;
+use warnings;
 
 use Data::Dumper;
 use HTTP::Tiny ();
